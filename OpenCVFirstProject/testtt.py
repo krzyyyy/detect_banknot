@@ -3,7 +3,13 @@ import cv2 as cv
 
 cap = cv.VideoCapture(0)
 cv.namedWindow("w", cv.WINDOW_NORMAL)
+img_points = np.empty((0,4), np.uint8)
+rang = [-100, 100]
 points = np.array([(-100,-100,-100), (-100,100,-100),(100,-100,-100), (100,100,-100),(-100,-100,100), (-100,100,100),(100,-100,100), (100,100,100)]);
+for r in rang:
+    img_points = np.append(img_points,np.where(points[:,0]==r),axis=0)
+    img_points = np.append(img_points, np.where(points[:, 1] == r), axis=0)
+    img_points = np.append(img_points, np.where(points[:, 2] == r), axis=0)
 rotations = np.array([0,0,0])
 translation = np.array([0,0,-30])
 focal_length = 100;
@@ -29,9 +35,17 @@ while(sign!=ord('m')):
 
     rotated_mat, jaco = cv.Rodrigues(rot_vec)
     points_rotated = np.matmul(rotated_mat, points_rotated.T).T;     #points.T
+    index = np.where(points_rotated[:,2]==min(points_rotated,key=lambda x: x[2])[2])
     points_2d, hesi = cv.projectPoints(points_rotated, np.array([(0,0,0)],dtype=np.double),trans_vec,camera_matrix,dist_couffs)
+
+
     for point in points_2d:
         point_temp=(int(round(point[0,0]+200)), int(round(point[0, 1]+200)))
         cv.drawMarker(img,point_temp,(0,255,255))
+    point_temp = (int(round(points_2d[index[0][0],0, 0] + 200)), int(round(points_2d[index[0][0],0, 1] + 200)))
+    cv.drawMarker(img, point_temp, (255, 0, 255))
     cv.imshow("w", img)
     sign = cv.waitKey(0)
+    print(min(points_rotated,key=lambda x: x[2]),"\n---------------------------------------")
+    print(points_rotated)
+    print(index)
