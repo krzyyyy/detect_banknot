@@ -10,6 +10,8 @@ for r in rang:
     img_points = np.append(img_points,np.where(points[:,0]==r),axis=0)
     img_points = np.append(img_points, np.where(points[:, 1] == r), axis=0)
     img_points = np.append(img_points, np.where(points[:, 2] == r), axis=0)
+
+
 rotations = np.array([0,0,0])
 translation = np.array([0,0,-30])
 focal_length = 100;
@@ -36,12 +38,22 @@ while(sign!=ord('m')):
     rotated_mat, jaco = cv.Rodrigues(rot_vec)
     points_rotated = np.matmul(rotated_mat, points_rotated.T).T;     #points.T
     index = np.where(points_rotated[:,2]==min(points_rotated,key=lambda x: x[2])[2])
+    img_mean_points = np.array([[np.mean(points_rotated[x],axis=0) for x in img_points]])
     points_2d, hesi = cv.projectPoints(points_rotated, np.array([(0,0,0)],dtype=np.double),trans_vec,camera_matrix,dist_couffs)
+    points_mean_2d, hesi = cv.projectPoints(img_mean_points,np.array([(0., 0., 0.)], dtype=np.double),trans_vec,camera_matrix, dist_couffs)
+
+    tab = np.array([x for x in range(6)], np.uint8)
+    tab_sort = sorted(tab, key=lambda x: img_mean_points[0][x][2])
+    for count, id in enumerate(tab_sort):
+        if_in = False
 
 
     for point in points_2d:
         point_temp=(int(round(point[0,0]+200)), int(round(point[0, 1]+200)))
         cv.drawMarker(img,point_temp,(0,255,255))
+    for point in points_mean_2d:
+        point_temp = (int(round(point[0, 0] + 200)), int(round(point[0, 1] + 200)))
+        cv.drawMarker(img, point_temp, (255, 255, 0))
     point_temp = (int(round(points_2d[index[0][0],0, 0] + 200)), int(round(points_2d[index[0][0],0, 1] + 200)))
     cv.drawMarker(img, point_temp, (255, 0, 255))
     cv.imshow("w", img)
