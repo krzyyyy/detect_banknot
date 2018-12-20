@@ -17,9 +17,10 @@ using namespace cv;
 
 int banding[] = {-100,100};
 vector <int> band(banding, banding+2);
+
 vector <Vec3f> points_3d, points_mean_3d;
 vector <Vec2f> points_2d, points_mean_2d;
-vector <vector<int>> id_img_points(0);
+vector <vector<int>> id_img_points(0), id_img_points_good(0);
 double focal_length = 100;
 Point2d center(0, 0);
 Mat camera_matrix = (Mat_<double>(3,3) << focal_length, 0, center.x,
@@ -31,8 +32,9 @@ Mat rot_mat = Mat::eye(3,  3, CV_32FC1);
 
 void mul(const Mat& src, vector<Vec3f> pts, vector<Vec3f>& out );
 void mean(const vector<Vec3f>& points, vector<vector<int>>& id_img, vector<Vec3f>& out );
-void find_visiable()
+//void find_visiable()
 int main() {
+	Mat img = imread("marcin.png");
 	for(auto& x : band)
 		for(auto y:band)
 			for(auto z:band)
@@ -67,10 +69,35 @@ int main() {
 		projectPoints(points_3d, Vec3f(0, 0, 0), trans, camera_matrix, dist_coeffs, points_2d);
 		projectPoints(points_mean_3d, Vec3f(0, 0, 0), trans, camera_matrix, dist_coeffs, points_mean_2d);
 
+
 		for(auto p:points_2d)
 			drawMarker(img, Point(p+Vec2f(200,200)), Scalar(200,0,120));
 		for(auto p:points_mean_2d)
 			drawMarker(img, Point(p+Vec2f(200,200)), Scalar(50,0,220));
+
+		vector <size_t> indexes_of_id({0, 1, 2, 3, 4, 5});//iota nie dziala na tym kompilatorze:)
+		sort(indexes_of_id.begin(), indexes_of_id.end(),
+				[&points_mean_3d](size_t a, size_t b){return points_mean_3d[a][2]>points_mean_3d[b][2];});
+		id_img_points_good.clear();
+		for(auto id:indexes_of_id){
+			bool if_internal = false;
+			for(auto pts:id_img_points_good){
+				vector <Vec2f> area(4);
+				vector <Vec2f> area2(0);
+				generate(area.begin(), area.end(),[points_2d, pts, n=0]()mutable{return points_2d[pts[n++]]+Vec2f(201,201);});
+				convexHull(area, area2);
+				if(pointPolygonTest(area2, points_mean_2d[id]+Vec2f(201,201), false)>=0)
+					if_internal=true;
+			}
+			if(if_internal==false)
+				id_img_points_good.push_back(id_img_points[id]);
+		}
+
+		for(auto p:id_img_points_good)
+			for(auto pt:p)
+				drawMarker(img, Point(points_2d[pt]+Vec2f(200,200)), Scalar(100, 200,10));
+
+
 
 		imshow("okno", img);
 		sign = waitKey(0);
